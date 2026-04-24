@@ -85,7 +85,6 @@ c0=5.5
 # Position initiale (x,y,z)
 R_in = [0, 1, 0.5]   # ATTENTION : condition initiale "mauvaise"
 
-
 # La fonction qui définit le système dynamique:
 # Il s'agit simplement qui à un vecteur R=(x,y,z) associe
 # les dérivées de (x,y,z). 
@@ -200,34 +199,6 @@ def section_carre(r0, parametres, t0, t1, npoints=N) :
     ax2.grid(True)
     fig2.show()
 
-def restriction(r0, parametres, t0, t1, npoints=N) :
-    # On avance dans le temps d'une durée t0
-    # le nombre de pas est réduit proportionnellement à t0 pour éviter
-    # de prendre trop de temps sur cette initialisation.
-    n=int(t0/t1*npoints) + 1
-    # Le signe _ signifie qu'on ne garde pas en mémoire
-    # le vecteur temps (il est inutile pour tracer cette courbe)
-    _, r=solve_Roessler(r0, parametres, t0, n)
-    # On récupère la dernière valeur calculée qui sera la première
-    # valeur tracée.
-    r1=r[-1]
-    # On résoud de nouveau à partir de la nouvelle origine.
-    _, R=solve_Roessler(r1, parametres, t1, npoints)
-    # R.T est la transposée de R, donc R.T[j,i] est la coordonnée j au temps i.
-    # Ainsi R.T[0] est le vecteur des valeur de la coordonnée 0 (soit x)
-    # à tous les temps i.
-    [X, Y, Z] = R.T 
-    y_pointcarre = []
-    
-    for k in range(len(X)-1):
-        
-        if X[k] > 0 and X[k+1] < 0:
-            poid = -X[k] / (X[k+1] - X[k])
-            y_points = Y[k] + poid * (Y[k+1] - Y[k])
-            
-            if y_points > 0 :
-                y_pointcarre.append(y_points)
-    
     y_array = np.array(y_pointcarre)
     print(len(y_array))
     
@@ -353,8 +324,6 @@ plt.show(block=True)
  
 section_carre(R_in, (a,b,c), 100, 500, 50000)
 plt.show(block=True)
-
-restriction(R_in, (a,b,c), 100, 500, 50000)
 
 plt.show(block=True)
 
