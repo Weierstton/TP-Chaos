@@ -176,7 +176,7 @@ def section_carre(r0, parametres, t0, t1, npoints=N) :
     
     for k in range(len(X)-1):
         
-        if X[k] > 0 and X[k+1] < 0:
+        if X[k] < 0 and X[k+1] > 0:
             poid = -X[k] / (X[k+1] - X[k])
             y_points = Y[k] + poid * (Y[k+1] - Y[k])
             z_points = Z[k] + poid * (Z[k+1] - Z[k])
@@ -187,9 +187,13 @@ def section_carre(r0, parametres, t0, t1, npoints=N) :
     fig2 = plt.figure(figsize=(6,6))
     ax2 = fig2.add_subplot(111) # Axe 2D
 
+
+
     # On trace avec des points ('.') et pas des lignes
 
     ax2.plot(y_pointcarre, z_pointcarre, '.', color='blue', markersize=2)
+
+
 
     ax2.set_xlabel('Y')
 
@@ -199,6 +203,8 @@ def section_carre(r0, parametres, t0, t1, npoints=N) :
 
     ax2.grid(True)
     fig2.show()
+
+
 
 def restriction(r0, parametres, t0, t1, npoints=N) :
     # On avance dans le temps d'une durée t0
@@ -244,9 +250,13 @@ def restriction(r0, parametres, t0, t1, npoints=N) :
     fig3 = plt.figure(figsize=(6,6))
     ax3 = fig3.add_subplot(111) # Axe 2D
 
+
+
     # On trace avec des points ('.') et pas des lignes
 
     ax3.plot(yk, yk1, '.', color='blue', markersize=2)
+
+
 
     ax3.set_xlabel('Y(i)')
 
@@ -257,6 +267,13 @@ def restriction(r0, parametres, t0, t1, npoints=N) :
     ax3.grid(True)
     fig3.show()
 
+
+            
+
+    
+    
+    
+    
 # FONCTIONS POUR LES WIDGETS
 # La fonction quitter ne fait que fermer la fenêtre en cours d'utilisation.
 # Cette fonction est nécessaire pour créer un bouton qui effectue 
@@ -267,6 +284,8 @@ def quitter(_):
 # Fonction de mise à jour de l'affichage, pour prendre compte la modification 
 # d'un paramètre. Elle sera activée à chaque modification du paramètre c
 # ou du temps t0 (voir plus bas).
+
+
 
 def update(_):
   # On récupère la valeur du paramètre c indiqué par la barre de glissement.
@@ -280,6 +299,7 @@ def update(_):
   # On trace la nouvelle figure
   trace_Roessler(R_in, (a,b,c), t0, t1, int(n))
 
+
 # Fonction de remise à zéro des glisseurs.
 # Une fois cela fait, on réactualise l'affichage
 def reset(_):
@@ -288,6 +308,7 @@ def reset(_):
   barre_t1.reset()
   barre_N.reset()
   update(0)
+  
 
 # TRACÉ DES WIDGETS
 # Dessin de la barre de glissement pour le paramètre c 
@@ -318,6 +339,8 @@ bouton_raz=Button(cadre_raz,'R. à 0')
 cadre_fin = plt.axes([0.85, 0.01, 0.1, 0.03])
 # Widget de type bouton 
 bouton_fin=Button(cadre_fin,'Fin')
+
+
 
 # Les widgets sont créés, mais il faut maintenant associer 
 # ce qu'il se passe quand on les utilise.
