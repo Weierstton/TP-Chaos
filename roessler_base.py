@@ -326,6 +326,13 @@ section_carre(R_in, (a,b,c), 100, 500, 50000)
 plt.show(block=True)
 
 plt.show(block=True)
-
+# c_2=3.83 premiere dedoublement,
+# c_4=4.57 duexieme dedoubelemt,
+# c_5=4.81 chaotique,
+# c_6=5.57 cycle limite de 3 tours,
+# c_7=6.38 cycle limits de 4 tours,
+# c_8=7.19 cycle limits de 5 tours,
+# c_8=8.83 chaotique,
+# c_9=10 cycles limites
 
 
