@@ -200,7 +200,13 @@ def section_carre(r0, parametres, t0, t1, npoints=N) :
             # - Donc tous les points collectés vérifient implicitement Y > 0
             y_pointcarre.append(y_points)
             z_pointcarre.append(z_points)
-                
+
+            max_idx = np.argmax(y_pointcarre)
+
+            critical_y = y_pointcarre[max_idx]
+
+            critical_z = z_pointcarre[max_idx]
+
     # Création d'une nouvelle figure dédiée à la section de Poincaré (fenêtre graphique de 6x6 pouces)
     fig2 = plt.figure(figsize=(6, 6))
     
@@ -226,6 +232,16 @@ def section_carre(r0, parametres, t0, t1, npoints=N) :
 
     # Activation de la grille de fond pour faciliter la lecture des coordonnées
     ax2.grid(True)
+
+    plt.scatter(critical_y, critical_z,
+
+                s=50,
+                marker='.',
+                edgecolors='black',
+                linewidth=1,
+                zorder=10,
+                label='x_c')
+    plt.legend(loc='best', fontsize=10)
 
     # Affichage de la figure à l'écran (attention : cette méthode peut être obsolète selon la version de matplotlib)
     # Dans les versions récentes, on préférera plt.show() ou fig2.canvas.draw()
