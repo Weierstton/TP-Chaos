@@ -170,95 +170,149 @@ def section_carre(r0, parametres, t0, t1, npoints=N) :
     # Ainsi R.T[0] est le vecteur des valeur de la coordonnée 0 (soit x)
     # à tous les temps i.
     [X, Y, Z] = R.T 
+    
+    # ============================================================================
+    # COLLECTE DES POINTS DE LA SECTION DE POINCARÉ (X = 0)
+    # ============================================================================
     y_pointcarre = []
     z_pointcarre = []
     
+    # Parcours de tous les segments de la trajectoire (entre deux points consécutifs)
     for k in range(len(X)-1):
-        
+    
+        # Détection d'un passage de la section X = 0 dans le sens décroissant
+        # On sélectionne les segments où X passe de positif (avant section) à négatif (après section)
+        # Cette condition de sens est cruciale : elle ne capture qu'UNE SEULE branche de l'attracteur
         if X[k] > 0 and X[k+1] < 0:
+            
+            # Calcul du coefficient de pondération (interpolation linéaire)
+            # Ce poids détermine la position exacte de l'intersection sur le segment
             poid = -X[k] / (X[k+1] - X[k])
+            
+            # Interpolation pour obtenir les coordonnées Y et Z au point d'intersection
             y_points = Y[k] + poid * (Y[k+1] - Y[k])
             z_points = Z[k] + poid * (Z[k+1] - Z[k])
             
+            # Stockage des points d'intersection
+            # NOTE IMPORTANTE : Aucun filtre explicite sur Y > 0 n'est nécessaire car :
+            # - La condition de capture (X > 0 → X < 0) sélectionne naturellement une branche spécifique de l'attracteur
+            # - Sur cette branche, du fait de la dynamique du système (ex: attracteur de Lorenz), la coordonnée Y est TOUJOURS positive
+            # - Donc tous les points collectés vérifient implicitement Y > 0
             y_pointcarre.append(y_points)
             z_pointcarre.append(z_points)
-            
-    fig2 = plt.figure(figsize=(6,6))
-    ax2 = fig2.add_subplot(111) # Axe 2D
+                
+    # Création d'une nouvelle figure dédiée à la section de Poincaré (fenêtre graphique de 6x6 pouces)
+    fig2 = plt.figure(figsize=(6, 6))
+    
+    # Ajout d'un axe 2D à la figure (subplot 1x1, premier et unique graphique)
+    # Le paramètre '111' signifie : 1 ligne, 1 colonne, 1er sous-graphique
+    ax2 = fig2.add_subplot(111)  # Axe 2D pour représenter le plan (Y, Z)
 
-    # On trace avec des points ('.') et pas des lignes
-
+    # Affichage des points d'intersection avec la section X=0
+    # On utilise des points ('.') et non des lignes car la section de Poincaré est un ensemble discret de points
+    # L'option 'color' définit la couleur des points (bleu)
+    # L'option 'markersize' contrôle la taille des points (2 pixels)
     ax2.plot(y_pointcarre, z_pointcarre, '.', color='blue', markersize=2)
-
+    
+    # Ajout du label pour l'axe des abscisses (Y)
     ax2.set_xlabel('Y')
 
+    # Ajout du label pour l'axe des ordonnées (Z)
     ax2.set_ylabel('Z')
 
+    # Ajout d'un titre personnalisé qui inclut la valeur du paramètre c (troisième paramètre de la liste 'parametres')
+    # La chaîne 'f' permet d'insérer directement la valeur de parametres[2] dans le texte
     ax2.set_title(f'Section de Poincaré (X=0) pour c={parametres[2]}')
 
+    # Activation de la grille de fond pour faciliter la lecture des coordonnées
     ax2.grid(True)
-    fig2.show()
 
-    y_array = np.array(y_pointcarre)
-    print(len(y_array))
+    # Affichage de la figure à l'écran (attention : cette méthode peut être obsolète selon la version de matplotlib)
+    # Dans les versions récentes, on préférera plt.show() ou fig2.canvas.draw()
+    fig2.show()
     
+    # Conversion en tableau NumPy pour bénéficier des opérations vectorisées
+    y_array = np.array(y_pointcarre)
+                
+    # Récupération des valeurs extrêmes (tous les Y sont > 0 par construction)
     y_max = np.max(y_array)
     y_min = np.min(y_array)
-    
-    if y_max > y_min :
+
+    # Normalisation sur l'intervalle [0, 1]
+    # Cette opération est valide car y_max > y_min (points non tous identiques)
+    if y_max > y_min:
         y_norm = (y_array - y_min) / (y_max - y_min)
-        
+
+    # y_k représente les états successifs : y_n
+    # On exclut le dernier point car il n'a pas de successeur
     yk = y_norm[:-1]
-    yk1 = y_norm[1:]
     
-            
-    fig3 = plt.figure(figsize=(6,6))
-    ax3 = fig3.add_subplot(111) # Axe 2D
+    # y_{k+1} représente l'image par f : f(y_n) = y_{n+1}
+    # On exclut le premier point pour créer l'appariement (y_n, y_{n+1})
+    yk1 = y_norm[1:]
 
-    # On trace avec des points ('.') et pas des lignes
+    fig3 = plt.figure(figsize=(6, 6))
+    ax3 = fig3.add_subplot(111)
 
+    # Tracé des couples (y_n, y_{n+1}) pour visualiser la dynamique
+    # La restriction est implicitement sur Y > 0 grâce à la condition de capture initiale
     ax3.plot(yk, yk1, '.', color='blue', markersize=2)
 
-    ax3.set_xlabel('Y(i)')
+    # Étiquettes des axes
+    ax3.set_xlabel('y_n (Y normalisé)')
+    ax3.set_ylabel('y_{n+1} = f(y_n) (Y normalisé)')
 
-    ax3.set_ylabel('f(Y(i) = Y(i+1) ')
-
-    ax3.set_title('Restriction f(Yi) pour y > 0')
+    # Titre indiquant la restriction implicite à Y > 0
+    ax3.set_title('Application du retour de Poincaré (restriction implicite à Y > 0)')
 
     ax3.grid(True)
-    fig3.show()
+    plt.show()
 
 # FONCTIONS POUR LES WIDGETS
 # La fonction quitter ne fait que fermer la fenêtre en cours d'utilisation.
 # Cette fonction est nécessaire pour créer un bouton qui effectue 
 # l'action de fermer la fenêtre.
 def quitter(_):
-  plt.close()
+    plt.close()
 
 # Fonction de mise à jour de l'affichage, pour prendre compte la modification 
 # d'un paramètre. Elle sera activée à chaque modification du paramètre c
 # ou du temps t0 (voir plus bas).
 
 def update(_):
-  # On récupère la valeur du paramètre c indiqué par la barre de glissement.
-  c=barre_c.val
-  # On récupère la valeur du temps indiqué par la barre de glissement.
-  t0=barre_t0.val
-  t1=barre_t1.val
-  # On récupère le nombre de pas 
-  n=np.power(10., barre_N.val)
-  barre_N.valtext.set_text(f"{n:5.1e}")
-  # On trace la nouvelle figure
-  trace_Roessler(R_in, (a,b,c), t0, t1, int(n))
+    # On récupère la valeur du paramètre c indiqué par la barre de glissement.
+    c=barre_c.val
+    # On récupère la valeur du temps indiqué par la barre de glissement.
+    t0=barre_t0.val
+    t1=barre_t1.val
+    # On récupère le nombre de pas 
+    n=np.power(10., barre_N.val)
+    barre_N.valtext.set_text(f"{n:5.1e}")
+    # On trace la nouvelle figure
+    trace_Roessler(R_in, (a,b,c), t0, t1, int(n))
 
 # Fonction de remise à zéro des glisseurs.
 # Une fois cela fait, on réactualise l'affichage
 def reset(_):
-  barre_c.reset()
-  barre_t0.reset()
-  barre_t1.reset()
-  barre_N.reset()
-  update(0)
+    barre_c.reset()
+    barre_t0.reset()
+    barre_t1.reset()
+    barre_N.reset()
+    update(0)
+
+# Fonction qui ajoute 0.01 à c
+def plus(_): 
+    # On définis une nouvelle valeur de la barre c limité à sa valeur maximal
+    plus_val = min(barre_c.val + 0.01, barre_c.valmax)
+    # On incrémente cette nouvelle valeur à la barre
+    barre_c.set_val(plus_val)
+    
+# Fonction qui retire 0.01 à c
+def moins(_): 
+    # On définis une nouvelle valeur de la barre c limité à sa valeur maximal
+    plus_val = min(barre_c.val - 0.01, barre_c.valmax)
+    # On incrémente cette nouvelle valeur à la barre
+    barre_c.set_val(plus_val)
 
 # TRACÉ DES WIDGETS
 # Dessin de la barre de glissement pour le paramètre c 
@@ -290,6 +344,16 @@ cadre_fin = plt.axes([0.85, 0.01, 0.1, 0.03])
 # Widget de type bouton 
 bouton_fin=Button(cadre_fin,'Fin')
 
+# Dessin d'un rectangle qui sera la bouton +.
+cadre_plus=plt.axes([0.85, 0.09, 0.1, 0.03])
+# Widget de type bouton 
+bouton_plus=Button(cadre_plus,'+')
+
+# Dessin d'un rectangle qui sera la bouton +.
+cadre_moins=plt.axes([0.85, 0.13, 0.1, 0.03])
+# Widget de type bouton 
+bouton_moins=Button(cadre_moins,'-')
+
 # Les widgets sont créés, mais il faut maintenant associer 
 # ce qu'il se passe quand on les utilise.
 
@@ -305,7 +369,10 @@ barre_N.on_changed(update)
 bouton_raz.on_clicked(reset)
 # Lorsque l'on clique sur Fin, on ferme la fenêtre
 bouton_fin.on_clicked(quitter)
-
+# Lorsque l'on clique sur +, on ajoute 0.01 à c
+bouton_plus.on_clicked(plus)
+# Lorsque l'on clique sur -, on retire 0.01 à c
+bouton_moins.on_clicked(moins)
 
 # Initialisation du programme
 # On fait une mise à jour avec update et un paramètre (n'importe lequel).
@@ -334,5 +401,4 @@ plt.show(block=True)
 # c_8=7.19 cycle limits de 5 tours,
 # c_8=8.83 chaotique,
 # c_9=10 cycles limites
-
 
