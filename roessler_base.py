@@ -152,8 +152,22 @@ def trace_Roessler(r0, parametres, t0, t1, npoints=N) :
   ax.plot3D(X, Y, Z, 'blue')
   # On ajoute le point fixe sur la figure.
   Roessler_fixed_point(parametres)
-  
-def section_carre(r0, parametres, t0, t1, npoints=N) :
+
+
+def section_poincarre(r0, parametres, t0, t1, npoints=N, G='yOz'):
+    """
+    Calcule les points d'intersections entre la trajectoire de l'attracteur et le plan de poincarre choisis
+    par l'utilisateur'
+    
+    Paramètres à commenter
+    G : str, 'yOz', 'xOz' ou 'xOy'
+        Plan de section choisi via les boutons de l'interface
+    
+    Notes
+    -----
+    Les boutons de l'interface utilisateur permettent de choisir dynamiquement
+    la valeur de G, ce qui change automatiquement le plan de section visualisé.
+    """
     # On avance dans le temps d'une durée t0
     # le nombre de pas est réduit proportionnellement à t0 pour éviter
     # de prendre trop de temps sur cette initialisation.
@@ -171,119 +185,170 @@ def section_carre(r0, parametres, t0, t1, npoints=N) :
     # à tous les temps i.
     [X, Y, Z] = R.T 
     
-    # ============================================================================
-    # COLLECTE DES POINTS DE LA SECTION DE POINCARÉ (X = 0)
-    # ============================================================================
-    y_pointcarre = []
-    z_pointcarre = []
+    # Dictionnaire définissant pour chaque plan quel axe est normal à la section
+    # et quels sont les axes dans le plan de section.
+    # Format : (indice_normal, indice_abscisse, indice_ordonnée)
+    plans = {
+        'yOz' : (0, 1, 2),  # Plan YOZ : axe X est normal, on trace (Y, Z)
+        'xOz' : (1, 0, 2),  # Plan XOZ : axe Y est normal, on trace (X, Z)
+        'xOy' : (2, 0, 1),  # Plan XOY : axe Z est normal, on trace (X, Y)
+        }
+    
+    # Sélection des indices en fonction du plan choisi par l'utilisateur
+    # G est modifié par les boutons de l'interface (yOz, xOz ou xOy)
+    if G == 'yOz':
+        i, j, k = plans['yOz']  # i : axe normal, j : abscisse, k : ordonnée
+        A = R.T[i]  # Coordonnée normale à la section (dont on teste le signe)
+        B = R.T[j]  # Coordonnée pour l'axe des abscisses du graphique
+        C = R.T[k]  # Coordonnée pour l'axe des ordonnées du graphique
+        
+    elif G == 'xOz':
+        i, j, k = plans['xOz']
+        A = R.T[i]
+        B = R.T[j]
+        C = R.T[k]
+        
+    else:  # G == 'xOy'
+        i, j, k = plans['xOy']
+        A = R.T[i]
+        B = R.T[j]
+        C = R.T[k]
+    
+    # Le plan de section est défini par A = 0 (axe normal à la section)
+    # On capture uniquement les passages de A > 0 à A < 0 (sens descendant)
+    # Cette condition capture une seule branche de l'attracteur
+    
+    B_pointcarre = []  # Coordonnées des points sur l'axe des abscisses
+    C_pointcarre = []  # Coordonnées des points sur l'axe des ordonnées
     
     # Parcours de tous les segments de la trajectoire (entre deux points consécutifs)
-    for k in range(len(X)-1):
+    for e in range(len(A)-1):
     
-        # Détection d'un passage de la section X = 0 dans le sens décroissant
-        # On sélectionne les segments où X passe de positif (avant section) à négatif (après section)
-        # Cette condition de sens est cruciale : elle ne capture qu'UNE SEULE branche de l'attracteur
-        if X[k] > 0 and X[k+1] < 0:
+        # Détection d'un passage de la section A = 0 dans le sens décroissant
+        # On sélectionne les segments où A passe de positif à négatif
+        if A[e] > 0 and A[e+1] < 0:
             
             # Calcul du coefficient de pondération (interpolation linéaire)
             # Ce poids détermine la position exacte de l'intersection sur le segment
-            poid = -X[k] / (X[k+1] - X[k])
+            # Formule : poid = |A[e]| / (|A[e]| + |A[e+1]|)
+            poid = -A[e] / (A[e+1] - A[e])
             
-            # Interpolation pour obtenir les coordonnées Y et Z au point d'intersection
-            y_points = Y[k] + poid * (Y[k+1] - Y[k])
-            z_points = Z[k] + poid * (Z[k+1] - Z[k])
+            # Interpolation linéaire pour obtenir les coordonnées exactes
+            # au point d'intersection avec le plan A = 0
+            B_points = B[e] + poid * (B[e+1] - B[e])
+            C_points = C[e] + poid * (C[e+1] - C[e])
             
             # Stockage des points d'intersection
-            # NOTE IMPORTANTE : Aucun filtre explicite sur Y > 0 n'est nécessaire car :
-            # - La condition de capture (X > 0 → X < 0) sélectionne naturellement une branche spécifique de l'attracteur
-            # - Sur cette branche, du fait de la dynamique du système (ex: attracteur de Lorenz), la coordonnée Y est TOUJOURS positive
-            # - Donc tous les points collectés vérifient implicitement Y > 0
-            y_pointcarre.append(y_points)
-            z_pointcarre.append(z_points)
+            # NOTE : La restriction implicite (ex: Y>0 pour le plan yOz) vient du fait
+            # que la condition de capture (descente) sélectionne une seule branche
+            B_pointcarre.append(B_points)
+            C_pointcarre.append(C_points)
+    
 
-            max_idx = np.argmax(y_pointcarre)
-
-            critical_y = y_pointcarre[max_idx]
-
-            critical_z = z_pointcarre[max_idx]
-
-    # Création d'une nouvelle figure dédiée à la section de Poincaré (fenêtre graphique de 6x6 pouces)
+    """ 
+    Trace la section de Poincarre choisis par l'utilisateur.
+    
+    Paramètres : 
+        On récupere les points calculer avec la fonction section_pointcarre
+        représenter par B_pointcarre et C_pointcarre
+    
+    """
+    # Création d'une nouvelle figure dédiée à la section de Poincaré
     fig2 = plt.figure(figsize=(6, 6))
     
-    # Ajout d'un axe 2D à la figure (subplot 1x1, premier et unique graphique)
-    # Le paramètre '111' signifie : 1 ligne, 1 colonne, 1er sous-graphique
-    ax2 = fig2.add_subplot(111)  # Axe 2D pour représenter le plan (Y, Z)
+    # Ajout d'un axe 2D (un seul graphique sur la figure)
+    ax2 = fig2.add_subplot(111)
 
-    # Affichage des points d'intersection avec la section X=0
-    # On utilise des points ('.') et non des lignes car la section de Poincaré est un ensemble discret de points
-    # L'option 'color' définit la couleur des points (bleu)
-    # L'option 'markersize' contrôle la taille des points (2 pixels)
-    ax2.plot(y_pointcarre, z_pointcarre, '.', color='blue', markersize=2)
+    # Affichage des points d'intersection
+    # On utilise des points ('.') car la section de Poincaré est un ensemble discret
+    ax2.plot(B_pointcarre, C_pointcarre, '.', color='blue', markersize=2)
     
-    # Ajout du label pour l'axe des abscisses (Y)
-    ax2.set_xlabel('Y')
+    # Étiquettes des axes : on utilise la première et troisième lettre du nom du plan
+    # Exemple : 'yOz' → 'y' en abscisse, 'z' en ordonnée
+    ax2.set_xlabel(G[0])  # Premier caractère : 'y', 'x' ou 'x'
+    ax2.set_ylabel(G[2])  # Troisième caractère : 'z', 'z' ou 'y'
 
-    # Ajout du label pour l'axe des ordonnées (Z)
-    ax2.set_ylabel('Z')
+    # Titre incluant le paramètre c (troisième paramètre du système de Roessler)
+    ax2.set_title(f'Section de Poincaré ({G[0]}{G[2]} - plan {G}) pour c={parametres[2]}')
 
-    # Ajout d'un titre personnalisé qui inclut la valeur du paramètre c (troisième paramètre de la liste 'parametres')
-    # La chaîne 'f' permet d'insérer directement la valeur de parametres[2] dans le texte
-    ax2.set_title(f'Section de Poincaré (X=0) pour c={parametres[2]}')
-
-    # Activation de la grille de fond pour faciliter la lecture des coordonnées
+    # Activation de la grille pour faciliter la lecture
     ax2.grid(True)
-
-    plt.scatter(critical_y, critical_z,
-
-                s=50,
-                marker='.',
-                edgecolors='black',
-                linewidth=1,
-                zorder=10,
-                label='x_c')
-    plt.legend(loc='best', fontsize=10)
-
-    # Affichage de la figure à l'écran (attention : cette méthode peut être obsolète selon la version de matplotlib)
-    # Dans les versions récentes, on préférera plt.show() ou fig2.canvas.draw()
-    fig2.show()
+    
+    return B_pointcarre
+    
+def application_poincarre(B_pointcarre, G='yOz'):
+    """
+    Construit et trace l'application de Poincaré f(u_n) = u_{n+1}
+    à partir des points d'intersection d'une section.
+    
+    Paramètres
+    ----------
+    B_pointcarre : 
+        Coordonnées des points sur l'axe étudié (celui qui sert de variable)
+        Pour G='yOz', B_pointcarre correspond aux coordonnées Y
+        Pour G='xOz', B_pointcarre correspond aux coordonnées X
+        Pour G='xOy', B_pointcarre correspond aux coordonnées X
+    G : str, par défaut 'yOz'
+        Plan de section utilisé (détermine l'axe d'étude)
+        - 'yOz' : étude selon l'axe Y
+        - 'xOz' : étude selon l'axe X
+        - 'xOy' : étude selon l'axe X
+    """
     
     # Conversion en tableau NumPy pour bénéficier des opérations vectorisées
-    y_array = np.array(y_pointcarre)
-                
-    # Récupération des valeurs extrêmes (tous les Y sont > 0 par construction)
-    y_max = np.max(y_array)
-    y_min = np.min(y_array)
-
-    # Normalisation sur l'intervalle [0, 1]
-    # Cette opération est valide car y_max > y_min (points non tous identiques)
-    if y_max > y_min:
-        y_norm = (y_array - y_min) / (y_max - y_min)
-
-    # y_k représente les états successifs : y_n
-    # On exclut le dernier point car il n'a pas de successeur
-    yk = y_norm[:-1]
+    f_array = np.array(B_pointcarre)
     
-    # y_{k+1} représente l'image par f : f(y_n) = y_{n+1}
-    # On exclut le premier point pour créer l'appariement (y_n, y_{n+1})
-    yk1 = y_norm[1:]
+    # Vérification qu'il y a assez de points
+    if len(f_array) < 2:
+        print(f"Erreur : Pas assez de points pour l'application de Poincaré ({len(f_array)} points)")
+        return None, None
+    
+    # Récupération des valeurs extrêmes
+    f_max = np.max(f_array)
+    f_min = np.min(f_array)
+    
+    # Normalisation sur l'intervalle [0, 1]
+    # Cette opération permet de se ramener à une échelle commune
+    if f_max > f_min:
+        f_norm = (f_array - f_min) / (f_max - f_min)
 
+    # u_n : représente les états successifs (tous les points sauf le dernier)
+    # On exclut le dernier point car il n'a pas de successeur connu
+    u_n = f_norm[:-1]
+    
+    # u_{n+1} = f(u_n) : l'image par l'application de Poincaré
+    # On exclut le premier point pour créer l'appariement (u_n, u_{n+1})
+    u_np1 = f_norm[1:]
+    
+    # Création de la figure
     fig3 = plt.figure(figsize=(6, 6))
     ax3 = fig3.add_subplot(111)
-
-    # Tracé des couples (y_n, y_{n+1}) pour visualiser la dynamique
-    # La restriction est implicitement sur Y > 0 grâce à la condition de capture initiale
-    ax3.plot(yk, yk1, '.', color='blue', markersize=2)
-
-    # Étiquettes des axes
-    ax3.set_xlabel('y_n (Y normalisé)')
-    ax3.set_ylabel('y_{n+1} = f(y_n) (Y normalisé)')
-
-    # Titre indiquant la restriction implicite à Y > 0
-    ax3.set_title('Application du retour de Poincaré (restriction implicite à Y > 0)')
-
+    
+    # Tracé des couples (u_n, u_{n+1})
+    ax3.plot(u_n, u_np1, '.', color='blue', markersize=2)
+    
+    # Détermination du nom de l'axe étudié à partir de G
+    if G == 'yOz':
+        axe_nom = 'Y'
+    elif G == 'xOz' or G == 'xOy':
+        axe_nom = 'X'
+    else:
+        axe_nom = 'U'
+    
+    # Étiquettes des axes (correction de la syntaxe)
+    ax3.set_xlabel(f'{axe_nom}_n normalisée')
+    ax3.set_ylabel(f'{axe_nom}_{{n+1}} = f({axe_nom}_n) (normalisé)')
+    
+    # Titre du graphique
+    ax3.set_title(f'Application de Poincaré (restriction implicite à {axe_nom} > 0)')
+    
+    # Grille pour faciliter la lecture
     ax3.grid(True)
+    
     plt.show()
 
+    
+    
 # FONCTIONS POUR LES WIDGETS
 # La fonction quitter ne fait que fermer la fenêtre en cours d'utilisation.
 # Cette fonction est nécessaire pour créer un bouton qui effectue 
@@ -370,6 +435,7 @@ cadre_moins=plt.axes([0.85, 0.13, 0.1, 0.03])
 # Widget de type bouton 
 bouton_moins=Button(cadre_moins,'-')
 
+
 # Les widgets sont créés, mais il faut maintenant associer 
 # ce qu'il se passe quand on les utilise.
 
@@ -404,8 +470,78 @@ plt.show(block=True)
 # d'attendre et exécuter les opérations controlées par les widgets.
 # Si on ferme la fenêtre, comme il n'y a plus rien en dessous de ce code,
 # python a réalisé toutes les opérations demandées et termine le programme.
- 
-section_carre(R_in, (a,b,c), 100, 500, 50000)
+
+#CREATION DES FONCTIONS ET BOUTONS UTILE A LA FONCTION SECTION_POINCARRE
+# Ces fonctions sont appelées automatiquement lorsque l'utilisateur clique
+# sur un bouton. Chaque fonction appelle section_poincarre() avec un plan
+# de section différent.
+
+def xOy(_): 
+    """
+    Fonction de rappel pour le bouton 'xOy'.
+    Trace la section de Poincaré dans le plan XOY (axe Z normal à la section) et 
+    l'application de Poincaré (réstriction sur X)
+    """
+    X = section_poincarre(R_in, (a, b, c), 100, 500, 50000, 'xOy')
+    application_poincarre(X, G = 'xOy')  
+
+
+def xOz(_): 
+    """
+    Fonction de rappel pour le bouton 'xOz'.
+    Trace la section de Poincaré dans le plan XOZ (axe Y normal à la section) et 
+    l'application de Poincaré (réstriction sur X)
+    """
+    X = section_poincarre(R_in, (a, b, c), 100, 500, 50000, 'xOz')
+    application_poincarre(X, G = 'xOz')
+
+
+def yOz(_): 
+    """
+    Fonction de rappel pour le bouton 'yOz'.
+    Trace la section de Poincaré dans le plan YOZ (axe X normal à la section) et 
+    l'application de Poincaré (réstriction sur Y)
+    """
+    Y = section_poincarre(R_in, (a, b, c), 100, 500, 50000, 'yOz')
+    application_poincarre(Y, G = 'yOz')
+
+
+
+# CRÉATION DES ZONES D'ANCRAGE (AXES) POUR LES BOUTONS
+# Chaque bouton a besoin d'un cadre (axes) pour se positionner dans la figure.
+# Les coordonnées sont données au format : [x, y, largeur, hauteur] en proportion
+# de la figure (0 = bas/gauche, 1 = haut/droite).
+
+# Cadre pour le bouton xOy (plan XOY)
+# Position : à gauche, légèrement au-dessus du bord inférieur
+cadre_xOy = plt.axes([0.15, 0.08, 0.15, 0.06])
+
+# Cadre pour le bouton xOz (plan XOZ)
+# Position : au centre, légèrement au-dessus du bord inférieur
+cadre_xOz = plt.axes([0.425, 0.08, 0.15, 0.06])
+
+# Cadre pour le bouton yOz (plan YOZ)
+# Position : à droite, légèrement au-dessus du bord inférieur
+cadre_yOz = plt.axes([0.70, 0.08, 0.15, 0.06])
+
+
+# INSTANCIATION DES BOUTONS
+# Création des objets Button à partir des cadres définis ci-dessus
+
+bouton_xOy = Button(cadre_xOy, 'xOy')  # Bouton pour la section XOY
+bouton_xOz = Button(cadre_xOz, 'xOz')  # Bouton pour la section XOZ
+bouton_yOz = Button(cadre_yOz, 'yOz')  # Bouton pour la section YOZ
+
+# CONNEXION DES BOUTONS À LEURS FONCTIONS DE RAPPEL
+# La méthode on_clicked() associe un bouton à sa fonction callback.
+# Lorsque l'utilisateur clique sur le bouton, la fonction est exécutée.
+
+bouton_xOy.on_clicked(xOy)  # Clique sur 'xOy' → trace section XOY
+bouton_xOz.on_clicked(xOz)  # Clique sur 'xOz' → trace section XOZ
+bouton_yOz.on_clicked(yOz)  # Clique sur 'yOz' → trace section YOZ
+
+
+
 plt.show(block=True)
 
 plt.show(block=True)
