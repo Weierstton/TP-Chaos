@@ -153,7 +153,6 @@ def trace_Roessler(r0, parametres, t0, t1, npoints=N) :
   # On ajoute le point fixe sur la figure.
   Roessler_fixed_point(parametres)
 
-
 def section_poincarre(r0, parametres, t0, t1, npoints=N, G='yOz'):
     """
     Calcule les points d'intersections entre la trajectoire de l'attracteur et le plan de poincarre choisis
@@ -347,8 +346,6 @@ def application_poincarre(B_pointcarre, G='yOz'):
     
     plt.show()
 
-    
-    
 # FONCTIONS POUR LES WIDGETS
 # La fonction quitter ne fait que fermer la fenêtre en cours d'utilisation.
 # Cette fonction est nécessaire pour créer un bouton qui effectue 
@@ -435,7 +432,6 @@ cadre_moins=plt.axes([0.85, 0.13, 0.1, 0.03])
 # Widget de type bouton 
 bouton_moins=Button(cadre_moins,'-')
 
-
 # Les widgets sont créés, mais il faut maintenant associer 
 # ce qu'il se passe quand on les utilise.
 
@@ -505,8 +501,6 @@ def yOz(_):
     Y = section_poincarre(R_in, (a, b, c), 100, 500, 50000, 'yOz')
     application_poincarre(Y, G = 'yOz')
 
-
-
 # CRÉATION DES ZONES D'ANCRAGE (AXES) POUR LES BOUTONS
 # Chaque bouton a besoin d'un cadre (axes) pour se positionner dans la figure.
 # Les coordonnées sont données au format : [x, y, largeur, hauteur] en proportion
@@ -539,8 +533,6 @@ bouton_yOz = Button(cadre_yOz, 'yOz')  # Bouton pour la section YOZ
 bouton_xOy.on_clicked(xOy)  # Clique sur 'xOy' → trace section XOY
 bouton_xOz.on_clicked(xOz)  # Clique sur 'xOz' → trace section XOZ
 bouton_yOz.on_clicked(yOz)  # Clique sur 'yOz' → trace section YOZ
-
-
 
 plt.show(block=True)
 
