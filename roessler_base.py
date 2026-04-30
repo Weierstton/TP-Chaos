@@ -321,14 +321,23 @@ def application_poincarre(B_pointcarre, G='yOz'):
     # u_{n+1} = f(u_n) : l'image par l'application de Poincaré
     # On exclut le premier point pour créer l'appariement (u_n, u_{n+1})
     u_np1 = f_norm[1:]
-    
+
+    if G == 'xOz':
+        idx_max = np.argmin(u_np1)
+    else:
+        idx_max = np.argmax(u_np1)
+
+    B_value = u_n[idx_max]
+    C_value = u_np1[idx_max]
+
+
     # Création de la figure
     fig3 = plt.figure(figsize=(6, 6))
     ax3 = fig3.add_subplot(111)
     
     # Tracé des couples (u_n, u_{n+1})
     ax3.plot(u_n, u_np1, '.', color='blue', markersize=2)
-    
+    ax3.plot(B_value, C_value, 'ro', label=f'$x_c \approx {B_value:.3f}$')
     # Détermination du nom de l'axe étudié à partir de G
     if G == 'yOz':
         axe_nom = 'Y'
@@ -397,9 +406,7 @@ def point_fixe_et_derive(un, unp1, extrapolate=True, tol=1e-12):
     
     # Dérivée au point fixe
     der = f.derivative()(u_star)
-    
     return u_star, der
-
 
 def point_critique(un, unp1) : 
     min_ = unp1[0]
@@ -408,13 +415,7 @@ def point_critique(un, unp1) :
             min_ = unp1[i]
             un_ = un[i]
     return min_, un_
-    
-    
-        
-    
 
-    
-    
 # FONCTIONS POUR LES WIDGETS
 # La fonction quitter ne fait que fermer la fenêtre en cours d'utilisation.
 # Cette fonction est nécessaire pour créer un bouton qui effectue 
