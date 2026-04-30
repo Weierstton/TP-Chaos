@@ -53,6 +53,8 @@ from scipy.integrate import odeint
 # Le paquet est renommé plt
 import matplotlib.pyplot as plt
 
+from scipy.interpolate import CubicSpline
+from scipy.optimize import brentq, minimize_scalar
 # Mise en activité du mode interactif
 plt.ion()
 # Définition de la méthode d'affichage des graphiques.
@@ -153,6 +155,7 @@ def trace_Roessler(r0, parametres, t0, t1, npoints=N) :
   # On ajoute le point fixe sur la figure.
   Roessler_fixed_point(parametres)
 
+
 def section_poincarre(r0, parametres, t0, t1, npoints=N, G='yOz'):
     """
     Calcule les points d'intersections entre la trajectoire de l'attracteur et le plan de poincarre choisis
@@ -242,6 +245,7 @@ def section_poincarre(r0, parametres, t0, t1, npoints=N, G='yOz'):
             # que la condition de capture (descente) sélectionne une seule branche
             B_pointcarre.append(B_points)
             C_pointcarre.append(C_points)
+    
 
     """ 
     Trace la section de Poincarre choisis par l'utilisateur.
@@ -260,7 +264,7 @@ def section_poincarre(r0, parametres, t0, t1, npoints=N, G='yOz'):
     # Affichage des points d'intersection
     # On utilise des points ('.') car la section de Poincaré est un ensemble discret
     ax2.plot(B_pointcarre, C_pointcarre, '.', color='blue', markersize=2)
-
+    
     # Étiquettes des axes : on utilise la première et troisième lettre du nom du plan
     # Exemple : 'yOz' → 'y' en abscisse, 'z' en ordonnée
     ax2.set_xlabel(G[0])  # Premier caractère : 'y', 'x' ou 'x'
@@ -317,23 +321,13 @@ def application_poincarre(B_pointcarre, G='yOz'):
     # u_{n+1} = f(u_n) : l'image par l'application de Poincaré
     # On exclut le premier point pour créer l'appariement (u_n, u_{n+1})
     u_np1 = f_norm[1:]
-
-    if G == 'xOz':
-        idx_max = np.argmin(u_np1)
-    else:
-        idx_max = np.argmax(u_np1)
-
-    B_value = u_n[idx_max]
-    B1_value = u_np1[idx_max]
-    print(B_value,B1_value)
-
+    
     # Création de la figure
     fig3 = plt.figure(figsize=(6, 6))
     ax3 = fig3.add_subplot(111)
     
     # Tracé des couples (u_n, u_{n+1})
     ax3.plot(u_n, u_np1, '.', color='blue', markersize=2)
-    ax3.plot(B_value, B1_value, 'ro', label=f'$x_c \approx {B_value:.3f}$')
     
     # Détermination du nom de l'axe étudié à partir de G
     if G == 'yOz':
@@ -345,15 +339,82 @@ def application_poincarre(B_pointcarre, G='yOz'):
     
     # Étiquettes des axes (correction de la syntaxe)
     ax3.set_xlabel(f'{axe_nom}_n normalisée')
-    ax3.set_ylabel(f'${axe_nom}_{{n+1}} = f({axe_nom}_n) $(normalisé)')
+    ax3.set_ylabel(f'{axe_nom}_{{n+1}} = f({axe_nom}_n) (normalisé)')
     
     # Titre du graphique
     ax3.set_title(f'Application de Poincaré (restriction implicite à {axe_nom} > 0)')
-
+    
     # Grille pour faciliter la lecture
     ax3.grid(True)
+    
     plt.show()
+    
+    return u_n, u_np1
 
+
+def point_fixe_et_derive(un, unp1, extrapolate=True, tol=1e-12):
+    # Tri
+    idx = np.argsort(un)
+    x = np.asarray(un)[idx]
+    y = np.asarray(unp1)[idx]
+    
+    # Spline cubique
+    f = CubicSpline(x, y, extrapolate=extrapolate)
+    
+    # Fonction g(u) = f(u) - u
+    def g(u):
+        return f(u) - u
+    
+    # Intervalle initial
+    a, b = x[0], x[-1]
+    ga, gb = g(a), g(b)
+    
+    # Élargissement si besoin
+    if ga * gb > 0 and extrapolate:
+        scale = 1.5
+        for _ in range(10):
+            if ga > 0:
+                a -= scale * (b - a)
+            else:
+                b += scale * (b - a)
+            ga, gb = g(a), g(b)
+            if ga * gb < 0:
+                break
+    
+    # Recherche de la racine
+    try:
+        if ga * gb < 0:
+            u_star = brentq(g, a, b, xtol=tol)
+        else:
+            res = minimize_scalar(lambda u: g(u)**2,
+                                  bounds=(a - (b-a), b + (b-a)),
+                                  method='bounded')
+            u_star = res.x
+    except ValueError:
+        diffs = np.abs(y - x)
+        i_min = np.argmin(diffs)
+        u_star = (x[i_min] + y[i_min]) / 2.0
+    
+    # Dérivée au point fixe
+    der = f.derivative()(u_star)
+    
+    return u_star, der
+
+
+def point_critique(un, unp1) : 
+    min_ = unp1[0]
+    for i in range(len(unp1)) :
+        if unp1[i] < min_ : 
+            min_ = unp1[i]
+            un_ = un[i]
+    return min_, un_
+    
+    
+        
+    
+
+    
+    
 # FONCTIONS POUR LES WIDGETS
 # La fonction quitter ne fait que fermer la fenêtre en cours d'utilisation.
 # Cette fonction est nécessaire pour créer un bouton qui effectue 
@@ -440,6 +501,7 @@ cadre_moins=plt.axes([0.85, 0.13, 0.1, 0.03])
 # Widget de type bouton 
 bouton_moins=Button(cadre_moins,'-')
 
+
 # Les widgets sont créés, mais il faut maintenant associer 
 # ce qu'il se passe quand on les utilise.
 
@@ -487,7 +549,7 @@ def xOy(_):
     l'application de Poincaré (réstriction sur X)
     """
     X = section_poincarre(R_in, (a, b, c), 100, 500, 50000, 'xOy')
-    application_poincarre(X, G = 'xOy')
+    application_poincarre(X, G = 'xOy')  
 
 
 def xOz(_): 
@@ -495,9 +557,12 @@ def xOz(_):
     Fonction de rappel pour le bouton 'xOz'.
     Trace la section de Poincaré dans le plan XOZ (axe Y normal à la section) et 
     l'application de Poincaré (réstriction sur X)
+    Détermine la position du point critique (Valeur minimum de f(xk))
     """
     X = section_poincarre(R_in, (a, b, c), 100, 500, 50000, 'xOz')
-    application_poincarre(X, G = 'xOz')
+    un, unp1 = application_poincarre(X, G = 'xOz')
+    point_c, uk = point_critique(un, unp1)
+    print('Le point critique se trouve en x = ', uk )
 
 
 def yOz(_): 
@@ -505,9 +570,15 @@ def yOz(_):
     Fonction de rappel pour le bouton 'yOz'.
     Trace la section de Poincaré dans le plan YOZ (axe X normal à la section) et 
     l'application de Poincaré (réstriction sur Y)
+    Détermine le point fixe et la valeur de sa dérivée
     """
     Y = section_poincarre(R_in, (a, b, c), 100, 500, 50000, 'yOz')
-    application_poincarre(Y, G = 'yOz')
+    un, unp1 = application_poincarre(Y, G = 'yOz')
+    pf, der = point_fixe_et_derive(un, unp1, extrapolate=True, tol=1e-12)
+    print('Le point fixe de notre application de Poincaré est ', pf,
+          'et la pente de la dérivée en se point est ', der)
+
+
 
 # CRÉATION DES ZONES D'ANCRAGE (AXES) POUR LES BOUTONS
 # Chaque bouton a besoin d'un cadre (axes) pour se positionner dans la figure.
@@ -542,6 +613,8 @@ bouton_xOy.on_clicked(xOy)  # Clique sur 'xOy' → trace section XOY
 bouton_xOz.on_clicked(xOz)  # Clique sur 'xOz' → trace section XOZ
 bouton_yOz.on_clicked(yOz)  # Clique sur 'yOz' → trace section YOZ
 
+
+
 plt.show(block=True)
 
 plt.show(block=True)
@@ -553,4 +626,7 @@ plt.show(block=True)
 # c_8=7.19 cycle limits de 5 tours,
 # c_8=8.83 chaotique,
 # c_9=10 cycles limites
+
+
+
 
