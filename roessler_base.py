@@ -242,7 +242,6 @@ def section_poincarre(r0, parametres, t0, t1, npoints=N, G='yOz'):
             # que la condition de capture (descente) sélectionne une seule branche
             B_pointcarre.append(B_points)
             C_pointcarre.append(C_points)
-    
 
     """ 
     Trace la section de Poincarre choisis par l'utilisateur.
@@ -261,7 +260,7 @@ def section_poincarre(r0, parametres, t0, t1, npoints=N, G='yOz'):
     # Affichage des points d'intersection
     # On utilise des points ('.') car la section de Poincaré est un ensemble discret
     ax2.plot(B_pointcarre, C_pointcarre, '.', color='blue', markersize=2)
-    
+
     # Étiquettes des axes : on utilise la première et troisième lettre du nom du plan
     # Exemple : 'yOz' → 'y' en abscisse, 'z' en ordonnée
     ax2.set_xlabel(G[0])  # Premier caractère : 'y', 'x' ou 'x'
@@ -318,13 +317,23 @@ def application_poincarre(B_pointcarre, G='yOz'):
     # u_{n+1} = f(u_n) : l'image par l'application de Poincaré
     # On exclut le premier point pour créer l'appariement (u_n, u_{n+1})
     u_np1 = f_norm[1:]
-    
+
+    if G == 'xOz':
+        idx_max = np.argmin(u_np1)
+    else:
+        idx_max = np.argmax(u_np1)
+
+    B_value = u_n[idx_max]
+    B1_value = u_np1[idx_max]
+    print(B_value,B1_value)
+
     # Création de la figure
     fig3 = plt.figure(figsize=(6, 6))
     ax3 = fig3.add_subplot(111)
     
     # Tracé des couples (u_n, u_{n+1})
     ax3.plot(u_n, u_np1, '.', color='blue', markersize=2)
+    ax3.plot(B_value, B1_value, 'ro', label=f'$x_c \approx {B_value:.3f}$')
     
     # Détermination du nom de l'axe étudié à partir de G
     if G == 'yOz':
@@ -336,14 +345,13 @@ def application_poincarre(B_pointcarre, G='yOz'):
     
     # Étiquettes des axes (correction de la syntaxe)
     ax3.set_xlabel(f'{axe_nom}_n normalisée')
-    ax3.set_ylabel(f'{axe_nom}_{{n+1}} = f({axe_nom}_n) (normalisé)')
+    ax3.set_ylabel(f'${axe_nom}_{{n+1}} = f({axe_nom}_n) $(normalisé)')
     
     # Titre du graphique
     ax3.set_title(f'Application de Poincaré (restriction implicite à {axe_nom} > 0)')
-    
+
     # Grille pour faciliter la lecture
     ax3.grid(True)
-    
     plt.show()
 
 # FONCTIONS POUR LES WIDGETS
@@ -479,7 +487,7 @@ def xOy(_):
     l'application de Poincaré (réstriction sur X)
     """
     X = section_poincarre(R_in, (a, b, c), 100, 500, 50000, 'xOy')
-    application_poincarre(X, G = 'xOy')  
+    application_poincarre(X, G = 'xOy')
 
 
 def xOz(_): 
