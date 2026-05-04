@@ -598,7 +598,6 @@ cadre_xOz = plt.axes([0.425, 0.08, 0.15, 0.06])
 # Position : à droite, légèrement au-dessus du bord inférieur
 cadre_yOz = plt.axes([0.70, 0.08, 0.15, 0.06])
 
-
 # INSTANCIATION DES BOUTONS
 # Création des objets Button à partir des cadres définis ci-dessus
 
@@ -614,19 +613,10 @@ bouton_xOy.on_clicked(xOy)  # Clique sur 'xOy' → trace section XOY
 bouton_xOz.on_clicked(xOz)  # Clique sur 'xOz' → trace section XOZ
 bouton_yOz.on_clicked(yOz)  # Clique sur 'yOz' → trace section YOZ
 
-
-
 plt.show(block=True)
 
 plt.show(block=True)
-# c_2=3.83 premiere dedoublement,
-# c_4=4.57 duexieme dedoubelemt,
-# c_5=4.81 chaotique,
-# c_6=5.57 cycle limite de 3 tours,
-# c_7=6.38 cycle limits de 4 tours,
-# c_8=7.19 cycle limits de 5 tours,
-# c_8=8.83 chaotique,
-# c_9=10 cycles limites
+
 
 
 
